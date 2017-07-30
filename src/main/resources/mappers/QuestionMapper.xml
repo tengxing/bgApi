@@ -44,6 +44,7 @@
     <select id="listTotal" resultMap="QuestionResultMap">
         SELECT id,ques_id,title,description,is_solved,order_degree FROM yjxx_ques
         WHERE status=1
+        ORDER BY id DESC
     </select>
 
     <!--listByPage-->
@@ -53,6 +54,7 @@
         <if test="start!=null and size!=null">
             limit #{start},#{size}
         </if>
+        ORDER BY id DESC
     </select>
 
     <!--countTotal-->
@@ -70,22 +72,15 @@
     <!--updateByMap-->
     <update id="updateByMap" parameterType="Map">
         UPDATE yjxx_ques
-        <set>
-            <if test="status!=null and status!='' ">
-                status=#{status},
+        set status=#{status}
+        <where>
+            <if test="quesId!=null and quesId!='' ">
+                ques_id=#{quesId}
             </if>
-        </set>
-        WHERE
-        <choose>
-            <when test="quesId!=null and quesId!='' ">
-                ques_id=#{quesId},
-            </when>
-        </choose>
-        <choose>
-            <when test="id!=null">
+            <if test="id!=null">
                 id=#{id}
-            </when>
-        </choose>
+            </if>
+        </where>
     </update>
 
 </mapper>
