@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:jee="http://www.springframework.org/schema/jee"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+        http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-4.0.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+        http://www.springframework.org/schema/task
+        http://www.springframework.org/schema/task/spring-task-4.1.xsd ">
+
+    <!--<context:property-placeholder location="classpath*:redis.properties"/>-->
+    <!-- redis属性文件 -->
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath*:redis.properties</value>
+            </list>
+        </property>
+    </bean>
+    <!--jedis配置-->
+    <bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+        <property name="maxTotal" value="200" />
+        <property name="maxIdle" value="30" />
+        <property name="maxWaitMillis" value="30000" />
+        <property name="testOnBorrow" value="false" /><!-- 向调用者输出“链接”资源时，是否检测是有有效，如果无效则从连接池中移除，并尝试获取继续获取。设为true，一个挂都不能用 -->
+        <property name="testOnReturn" value="true" /><!-- 向连接池“归还”链接时，是否检测“链接”对象的有效性。 -->
+    </bean>
+    <!--jedis sentinel配置-->
+    <!--<bean id="jedisSentinelPool" class="redis.clients.jedis.JedisSentinelPool">
+        <constructor-arg index="0" value=""/>
+        <constructor-arg index="1">
+            <set>
+                <value>127.0.0.1:26379</value>
+                <value>127.0.0.1:36379</value>&lt;!&ndash;配置了两个哨兵 &ndash;&gt;
+            </set>
+        </constructor-arg>
+        <constructor-arg index="2" ref="jedisPoolConfig"/>
+    </bean>-->
+
+    <!-- redis集群配置 哨兵模式 -->
+    <bean id="sentinelConfiguration" class="org.springframework.data.redis.connection.RedisSentinelConfiguration">
+        <property name="master">
+            <bean class="org.springframework.data.redis.connection.RedisNode">
+                <!--这个值要和Sentinel中指定的master的值一致，不然启动时找不到Sentinel会报错的-->
+                <property name="name" value="${redis.master.name}"></property>
+            </bean>
+        </property>
+        <!--记住了,这里是指定Sentinel的IP和端口，不是Master和Slave的-->
+        <property name="sentinels">
+            <set>
+                <bean class="org.springframework.data.redis.connection.RedisNode">
+                    <constructor-arg name="host" value="${redis.sentinel.host1}"></constructor-arg>
+                    <constructor-arg name="port" value="${redis.sentinel.port1}"></constructor-arg>
+                </bean>
+                <bean class="org.springframework.data.redis.connection.RedisNode">
+                    <constructor-arg name="host" value="${redis.sentinel.host2}"></constructor-arg>
+                    <constructor-arg name="port" value="${redis.sentinel.port2}"></constructor-arg>
+                </bean>
+            </set>
+        </property>
+    </bean>
+
+    <bean id="redisConnectionFactory" class="org.springframework.data.redis.connection.RedisConnectionFactory">
+        <constructor-arg name="sentinelConfig" ref="sentinelConfiguration"></constructor-arg>
+        <constructor-arg name="poolConfig" ref="jedisPoolConfig"></constructor-arg>
+    </bean>
+
+    <bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
+        <property name="connectionFactory" ref="redisConnectionFactory"></property>
+        <property name="keySerializer">
+            <bean class="org.springframework.data.redis.serializer.StringRedisSerializer" />
+        </property>
+        <property name="valueSerializer">
+            <bean class="org.springframework.data.redis.serializer.JdkSerializationRedisSerializer" />
+        </property>
+    </bean>
+
+    </beans>
