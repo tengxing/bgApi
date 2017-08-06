@@ -1,7 +1,8 @@
-package cn.yjxxclub.bgApi.jedis;
+package cn.yjxxclub.bgApi.test;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import redis.clients.jedis.*;
 
 import java.util.Date;
@@ -16,10 +17,11 @@ import java.util.Set;
  * Describe: Jedis集群测试
  */
 public class JedisClusterTest {
-    private final static Logger logger = LoggerFactory.getLogger(JedisTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(JedisClusterTest.class);
 
     // Redis集群的节点集合
     static Set<HostAndPort> jedisClusterNodes;
+
 
     public static void main(String[] args){
         JedisPoolConfig config = new JedisPoolConfig();
@@ -50,8 +52,8 @@ public class JedisClusterTest {
             String value = jedis.get("foo"+i);
             //jedisCluster.del("foo"+i);
         }
-        jedis.set("foo8888","tengxing");
-        logger.info(jedis.get("name"));
+        jedis.set("foo8888","teng");
+        logger.info(jedis.get("foo2"));
         /*JedisCluster jedisCluster = new JedisCluster(jedisClusterNodes,config);
         logger.info("时间"+new Date().getTime());
         jedisCluster.set("name","tengxing");
@@ -62,6 +64,10 @@ public class JedisClusterTest {
             //jedisCluster.del("foo"+i);
         }*/
         logger.info("时间"+new Date().getTime());
+    }
+    @Cacheable(value = "")
+    public String fdf(){
+        return null;
     }
 
 }

@@ -1,5 +1,6 @@
 package cn.yjxxclub.bgApi.jedis;
 
+import cn.yjxxclub.bgApi.common.util.PropertiesUtil;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ public class SpringJedisSentinelTest {
 
     @Test
     public void test() {
+        logger.info(""+Integer.parseInt(PropertiesUtil.prop("redis.pool.maxIdle")));
         /*boolean result = (boolean) redisTemplate.execute((RedisCallback) connection -> {
             connection.set("testKey".getBytes(), "test123".getBytes());
             return true;
