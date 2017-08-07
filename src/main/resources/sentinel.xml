@@ -6,14 +6,16 @@
        xmlns:jee="http://www.springframework.org/schema/jee"
        xmlns:tx="http://www.springframework.org/schema/tx"
        xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:c="http://www.springframework.org/schema/c"
        xsi:schemaLocation="
         http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
         http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
         http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-4.0.xsd
         http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
-        http://www.springframework.org/schema/task
-        http://www.springframework.org/schema/task/spring-task-4.1.xsd ">
+        http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.1.xsd
+        http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.0.xsd">
 
     <!--<context:property-placeholder location="classpath*:redis.properties"/>-->
     <!-- redis属性文件 -->
@@ -24,13 +26,17 @@
             </list>
         </property>
     </bean>
-    <!--jedis配置-->
+
+    <!-- redis属性配置 -->
     <bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
-        <property name="maxTotal" value="200" />
-        <property name="maxIdle" value="30" />
-        <property name="maxWaitMillis" value="30000" />
-        <property name="testOnBorrow" value="false" /><!-- 向调用者输出“链接”资源时，是否检测是有有效，如果无效则从连接池中移除，并尝试获取继续获取。设为true，一个挂都不能用 -->
-        <property name="testOnReturn" value="true" /><!-- 向连接池“归还”链接时，是否检测“链接”对象的有效性。 -->
+        <property name="maxTotal" value="${redis.pool.maxTotal}" />
+        <property name="maxIdle" value="${redis.pool.maxIdle}" />
+        <property name="numTestsPerEvictionRun" value="${redis.pool.numTestsPerEvictionRun}" />
+        <property name="timeBetweenEvictionRunsMillis" value="${redis.pool.timeBetweenEvictionRunsMillis}" />
+        <property name="minEvictableIdleTimeMillis" value="${redis.pool.minEvictableIdleTimeMillis}" />
+        <property name="softMinEvictableIdleTimeMillis" value="${redis.pool.softMinEvictableIdleTimeMillis}" />
+        <property name="maxWaitMillis" value="${redis.pool.maxWaitMillis}" />
+        <property name="testOnBorrow" value="${redis.pool.testOnBorrow}" />
     </bean>
     <!--jedis sentinel配置-->
     <!--<bean id="jedisSentinelPool" class="redis.clients.jedis.JedisSentinelPool">
@@ -44,8 +50,8 @@
         <constructor-arg index="2" ref="jedisPoolConfig"/>
     </bean>-->
 
-    <!-- redis集群配置 哨兵模式 -->
-    <bean id="sentinelConfiguration" class="org.springframework.data.redis.connection.RedisSentinelConfiguration">
+    <!-- redis集群配置 哨兵架构 -->
+    <bean id="redisSentinelConfiguration" class="org.springframework.data.redis.connection.RedisSentinelConfiguration">
         <property name="master">
             <bean class="org.springframework.data.redis.connection.RedisNode">
                 <!--这个值要和Sentinel中指定的master的值一致，不然启动时找不到Sentinel会报错的-->
@@ -67,19 +73,34 @@
         </property>
     </bean>
 
-    <bean id="redisConnectionFactory" class="org.springframework.data.redis.connection.RedisConnectionFactory">
-        <constructor-arg name="sentinelConfig" ref="sentinelConfiguration"></constructor-arg>
+    <!--redis连接工厂-->
+    <bean id="redisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory">
+        <constructor-arg name="sentinelConfig" ref="redisSentinelConfiguration"></constructor-arg>
         <constructor-arg name="poolConfig" ref="jedisPoolConfig"></constructor-arg>
     </bean>
 
+    <!--redis模板-->
     <bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
         <property name="connectionFactory" ref="redisConnectionFactory"></property>
-        <property name="keySerializer">
+       <!-- <property name="keySerializer">
             <bean class="org.springframework.data.redis.serializer.StringRedisSerializer" />
         </property>
         <property name="valueSerializer">
             <bean class="org.springframework.data.redis.serializer.JdkSerializationRedisSerializer" />
-        </property>
+        </property>-->
     </bean>
 
+    <!--通过缓存对注解的支持-->
+    <cache:annotation-driven cache-manager="cacheManager" key-generator="cacheKeyGenerator"/>
+
+    <!-- 缓存类及缓存定义 -->
+    <!-- declare Redis Cache Manager -->
+    <bean id='cacheManager'
+            class='org.springframework.data.redis.cache.RedisCacheManager'>
+           <!-- c:template-ref='redisTemplate'/>-->
+        <constructor-arg name="redisOperations" ref="redisTemplate"/>
+    </bean>
+
+    <!--自定义Key生成策略-->
+    <bean id="cacheKeyGenerator" class="cn.yjxxclub.bgApi.common.config.CacheKeyGenerator"></bean>
     </beans>
